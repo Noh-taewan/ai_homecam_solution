@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Homecam Solution</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #0056b3;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+            border: 2px dashed #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        input[type="file"] {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results-section {
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        #status {
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        #analysisResult {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Homecam Solution: Fall Detection</h1>
+
+        <div class="upload-section">
+            <input type="file" id="videoUpload" accept="video/*">
+            <button id="analyzeButton">Analyze Video</button>
+        </div>
+
+        <div class="video-preview-section" style="margin-top: 20px; text-align: center;">
+            <h2>Uploaded Video</h2>
+            <video id="videoPreview" controls width="600" style="max-width: 100%; display: none;"></video>
+            <p id="videoPlaceholder" style="color: #666;">No video selected</p>
+        </div>
+
+        <div class="loading" id="loadingSpinner">
+            Analyzing video... Please wait.
+        </div>
+
+        <div class="results-section">
+            <h2>Analysis Results</h2>
+            <p id="status"></p>
+            <pre id="analysisResult">Upload a video and click "Analyze Video" to see results.</pre>
+        </div>
+    </div>
+
+    <script>
+        const videoUpload = document.getElementById('videoUpload');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const statusElement = document.getElementById('status');
+        const analysisResultElement = document.getElementById('analysisResult');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const videoPreview = document.getElementById('videoPreview');
+        const videoPlaceholder = document.getElementById('videoPlaceholder');
+
+        videoUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const fileURL = URL.createObjectURL(file);
+                videoPreview.src = fileURL;
+                videoPreview.style.display = 'block';
+                videoPlaceholder.style.display = 'none';
+            } else {
+                videoPreview.src = '';
+                videoPreview.style.display = 'none';
+                videoPlaceholder.style.display = 'block';
+            }
+        });
+
+        analyzeButton.addEventListener('click', async () => {
+            const videoFile = videoUpload.files[0];
+
+            if (!videoFile) {
+                statusElement.textContent = '먼저 비디오 파일을 선택해 주세요.';
+                statusElement.style.color = 'red';
+                return;
+            }
+
+            statusElement.textContent = '';
+            analysisResultElement.textContent = '';
+            loadingSpinner.style.display = 'block'; // Show loading spinner
+
+            const formData = new FormData();
+            formData.append('video', videoFile);
+
+            try {
+                const response = await fetch('https://8080-cs-aac234d0-52b1-401b-8754-d07064d260e3.cs-asia-east1-duck.cloudshell.dev/analyze-video', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    let riskText = '';
+                    let riskColor = 'green';
+
+                    if (result.potential_risk === 'high') {
+                        riskText = '위험도: 높음';
+                        riskColor = 'red';
+                    } else {
+                        riskText = '위험도: 낮음';
+                        riskColor = 'green';
+                    }
+
+                    let detailsText = result.details; // Use the details directly from the backend response
+
+                    statusElement.textContent = `${detailsText} ${riskText}`;
+                    statusElement.style.color = riskColor;
+                    analysisResultElement.textContent = JSON.stringify(result, null, 2); // Keep raw JSON for full details
+                } else {
+                    statusElement.textContent = `오류: ${result.error || '알 수 없는 오류'}`;
+                    statusElement.style.color = 'red';
+                    analysisResultElement.textContent = JSON.stringify(result, null, 2);
+                }
+            } catch (error) {
+                statusElement.textContent = `네트워크 오류: ${error.message}`;
+                statusElement.style.color = 'red';
+                analysisResultElement.textContent = `서버에 연결할 수 없습니다. 백엔드가 실행 중인지 확인해 주십시오.`;
+            } finally {
+                loadingSpinner.style.display = 'none'; // Hide loading spinner
+            }
+        });
+    </script>
+</body>
+</html>

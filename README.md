@@ -1,4 +1,4 @@
-# AI Homecam Solution: Fall Detection with Google Gemini API
+# AI Homecam Solution: Risk Detection with Google Gemini API
 
 ## 프로젝트 개요
 이 프로젝트는 Google Gemini API의 멀티모달(Multimodal) 분석 능력을 활용하여 영상 속 인물의 행동을 분석하고 '넘어짐', '낙상', '발작'과 같은 잠재적 위험 상황을 감지하는 웹 애플리케이션입니다. 사용자가 비디오 파일을 업로드하면, 백엔드 서버가 이를 프레임 단위로 분할하여 Google Cloud Storage(GCS)에 저장하고, Gemini API를 통해 분석한 후 결과를 프론트엔드에 표시합니다.
